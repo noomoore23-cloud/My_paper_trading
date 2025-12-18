@@ -75,7 +75,9 @@ with left_panel:
     st.markdown("---")
     
     # Pre-defined Watchlist (Clickable)
-    watchlist = ["RELIANCE.NS", "TCS.NS", "HDFCBANK.NS", "TATAMOTORS.NS", "SBIN.NS"]
+    # உங்களுக்கு பிடித்த பங்குகளை இங்கே சேர்க்கலாம்
+    watchlist = ["RELIANCE.NS", "TCS.NS", "HDFCBANK.NS", "TATAMOTORS.NS", "SBIN.NS", "INFY.NS", "ITC.NS"]
+    
     st.write("Favorites:")
     for stock in watchlist:
         # Fetch minimal live data for color
@@ -85,9 +87,11 @@ with left_panel:
                 price = data['Close'].iloc[-1]
                 open_p = data['Open'].iloc[-1]
                 change = price - open_p
+                
+                # கலர் லாஜிக் (பச்சை/சிவப்பு)
                 color = "green" if change >= 0 else "red"
                 
-                # Simple display
+                # பட்டன் மூலம் பங்கைத் தேர்ந்தெடுத்தல்
                 if st.button(f"{stock}  |  ₹{price:.1f}", key=stock):
                     st.session_state.selected_stock = stock
                     st.rerun()
@@ -102,7 +106,7 @@ with right_panel:
     # Fetch Data
     try:
         ticker = yf.Ticker(symbol)
-        # Intraday 1-minute data for chart accuracy
+        # Intraday 5-minute data (வேகமாக வர)
         hist_data = ticker.history(period="1d", interval="5m") 
         
         if not hist_data.empty:
@@ -112,7 +116,7 @@ with right_panel:
             chg_pct = (chg / prev_close) * 100
             color_code = "green" if chg >= 0 else "red"
             
-            # --- TOP INFO BAR ---
+            # --- TOP INFO BAR (பெரிய எழுத்துக்கள்) ---
             st.markdown(f"""
             ## {symbol} 
             <span style='font-size:24px; color:{color_code}'>₹{current_price:.2f}</span> 
@@ -127,7 +131,7 @@ with right_panel:
                 col_graph, col_controls = st.columns([3, 1])
                 
                 with col_graph:
-                    # Interactive Candlestick Chart
+                    # Interactive Candlestick Chart (Plotly)
                     fig = go.Figure(data=[go.Candlestick(
                         x=hist_data.index,
                         open=hist_data['Open'],
@@ -140,7 +144,8 @@ with right_panel:
                         height=500, 
                         margin=dict(l=20, r=20, t=20, b=20),
                         xaxis_rangeslider_visible=False,
-                        template="plotly_white"
+                        template="plotly_white",
+                        title=f"{symbol} Intraday Chart"
                     )
                     st.plotly_chart(fig, use_container_width=True)
                 
@@ -153,9 +158,19 @@ with right_panel:
                     st.write(f"Margin Req: ₹{req_margin:,.2f}")
                     
                     b1, b2 = st.columns(2)
-                    {
-    "Time": ...,
-    "Type": "BUY",
-    ...
-}
                     
+                    # --- BUY BUTTON logic ---
+                    if b1.button("🔵 BUY", use_container_width=True):
+                        if st.session_state.balance >= req_margin:
+                            st.session_state.balance -= req_margin
+                            st.session_state.portfolio[symbol] = st.session_state.portfolio.get(symbol, 0) + qty
+                            
+                            # History Update (பிழை வராத முறை)
+                            trade_data = {
+                                "Time": datetime.datetime.now().strftime("%H:%M"),
+                                "Type": "BUY",
+                                "Symbol": symbol,
+                                "Qty": qty,
+                                "Price": current_price
+                            }
+                            st.session_state.history.append(trade_
