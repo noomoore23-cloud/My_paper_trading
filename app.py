@@ -173,4 +173,108 @@ with right_panel:
                                 "Qty": qty,
                                 "Price": current_price
                             }
-                            st.session_state.history.append(trade_
+                            st.session_state.history.append(trade_data)
+                            
+                            st.success("Order Executed!")
+                            st.rerun()
+                        else:
+                            st.error("Insufficient Funds")
+                            
+                    # --- SELL BUTTON logic ---
+                    if b2.button("🔴 SELL", use_container_width=True):
+                        current_qty = st.session_state.portfolio.get(symbol, 0)
+                        if current_qty >= qty:
+                            st.session_state.balance += req_margin
+                            st.session_state.portfolio[symbol] -= qty
+                            
+                            if st.session_state.portfolio[symbol] == 0:
+                                del st.session_state.portfolio[symbol]
+                            
+                            # History Update
+                            trade_data = {
+                                "Time": datetime.datetime.now().strftime("%H:%M"),
+                                "Type": "SELL",
+                                "Symbol": symbol,
+                                "Qty": qty,
+                                "Price": current_price
+                            }
+                            st.session_state.history.append(trade_data)
+                            
+                            st.success("Order Executed!")
+                            st.rerun()
+                        else:
+                            st.error("Insufficient Holdings")
+            
+            # ----------- TAB 2: DASHBOARD (HOLDINGS) -----------
+            with tab_holdings:
+                st.subheader("Live Positions")
+                
+                if st.session_state.portfolio:
+                    data_list = []
+                    total_pnl = 0
+                    current_val_total = 0
+                    
+                    for s, q in st.session_state.portfolio.items():
+                        # Get live price for P&L
+                        try:
+                            lp = yf.Ticker(s).history(period="1d")['Close'].iloc[-1]
+                            val = lp * q
+                            
+                            data_list.append({
+                                "Symbol": s,
+                                "Qty": q,
+                                "LTP": round(lp, 2),
+                                "Current Value": round(val, 2)
+                            })
+                            current_val_total += val
+                        except:
+                            pass
+                    
+                    # Show Table
+                    df = pd.DataFrame(data_list)
+                    st.dataframe(df, use_container_width=True)
+                    
+                    # Net Worth Calculation
+                    net_worth = st.session_state.balance + current_val_total
+                    pnl = net_worth - 1000000
+                    
+                    m1, m2, m3 = st.columns(3)
+                    m1.metric("Cash Balance", f"₹{st.session_state.balance:,.2f}")
+                    m2.metric("Portfolio Value", f"₹{current_val_total:,.2f}")
+                    m3.metric("Total P&L", f"₹{pnl:,.2f}", delta=f"{pnl:.2f}")
+                    
+                    # Panic Button
+                    st.markdown("---")
+                    if st.button("🚨 Square Off All Positions (Exit All)"):
+                        st.session_state.balance += current_val_total
+                        st.session_state.portfolio = {}
+                        
+                        exit_data = {
+                            "Time": "SYSTEM",
+                            "Type": "SQUARE OFF",
+                            "Symbol": "ALL",
+                            "Qty": 0,
+                            "Price": 0
+                        }
+                        st.session_state.history.append(exit_data)
+                        
+                        st.success("All positions closed.")
+                        st.rerun()
+                else:
+                    st.info("No open positions. Start trading from the Chart tab.")
+
+            # ----------- TAB 3: ORDER BOOK -----------
+            with tab_orders:
+                st.subheader("Trade History")
+                if st.session_state.history:
+                    df_hist = pd.DataFrame(st.session_state.history)
+                    # Show latest first
+                    st.dataframe(df_hist.iloc[::-1], use_container_width=True)
+                else:
+                    st.write("No trades yet.")
+        
+        else:
+            st.error("Market Data not available currently. (Check Symbol or Market Time)")
+            
+    except Exception as e:
+        st.error(f"Error: {e}")
