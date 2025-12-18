@@ -153,10 +153,9 @@ with right_panel:
                     st.write(f"Margin Req: ₹{req_margin:,.2f}")
                     
                     b1, b2 = st.columns(2)
+                    {
+    "Time": ...,
+    "Type": "BUY",
+    ...
+}
                     
-                    # BUY BUTTON logic
-                    if b1.button("🔵 BUY", use_container_width=True):
-                        if st.session_state.balance >= req_margin:
-                            st.session_state.balance -= req_margin
-                            st.session_state.portfolio[symbol] = st.session_state.portfolio.get(symbol, 0) + qty
-                            st.session_state.history.append({"Time": datetime.datetime.now().strftime("%H:%M"), "Type": "
